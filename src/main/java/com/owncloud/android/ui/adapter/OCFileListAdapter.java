@@ -896,6 +896,7 @@ public class OCFileListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 }
             }
         }
+
         mStorageManager.saveShares(shares);
     }
 
@@ -968,7 +969,7 @@ public class OCFileListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         }
 
         preferences.setPhotoSearchTimestamp(System.currentTimeMillis());
-        mStorageManager.saveVirtuals(type, contentValues);
+        mStorageManager.saveVirtuals(contentValues);
     }
 
     public void showVirtuals(VirtualFolderType type, boolean onlyImages, FileDataStorageManager storageManager) {
