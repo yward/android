@@ -1868,6 +1868,49 @@ public class FileDataStorageManager {
         deleteFiles(contentUriDir, where, whereArgs, "Exception in deleteAllFiles for account " + account.name + ": ");
     }
 
+    protected List<OCFile> getAllFiles() {
+        List<OCFile> ret = new ArrayList<>();
+
+        Uri req_uri = ProviderTableMeta.CONTENT_URI;
+        Cursor c;
+
+        if (getContentProviderClient() != null) {
+            try {
+                c = getContentProviderClient().query(
+                    req_uri,
+                    null,
+                    "1=1",
+                    null,
+                    null
+                );
+            } catch (RemoteException e) {
+                Log_OC.e(TAG, e.getMessage(), e);
+                return ret;
+            }
+        } else {
+            c = getContentResolver().query(
+                req_uri,
+                null,
+                "1=1",
+                null,
+                null
+            );
+        }
+
+        if (c != null) {
+            if (c.moveToFirst()) {
+                do {
+                    OCFile child = createFileInstance(c);
+                    ret.add(child);
+                } while (c.moveToNext());
+            }
+
+            c.close();
+        }
+
+        return ret;
+    }
+
     private String getString(Cursor cursor, String columnName) {
         return cursor.getString(cursor.getColumnIndex(columnName));
     }
