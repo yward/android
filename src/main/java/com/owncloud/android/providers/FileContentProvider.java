@@ -40,7 +40,6 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.os.Binder;
-import android.os.Build;
 import android.text.TextUtils;
 
 import com.nextcloud.client.core.Clock;
@@ -277,10 +276,19 @@ public class FileContentProvider extends ContentProvider {
                 String[] whereArgs = {remotePath, accountName};
 
                 Cursor doubleCheck = query(db, uri, projection, where, whereArgs, null);
-                // TODO better implementation is needed
                 // ugly patch; serious refactorization is needed to reduce work in
                 // FileDataStorageManager and bring it to FileContentProvider
-                if (doubleCheck.moveToFirst()) {
+                if (doubleCheck == null || !doubleCheck.moveToFirst()) {
+                    if (doubleCheck != null) {
+                        doubleCheck.close();
+                    }
+                    long rowId = db.insert(ProviderTableMeta.FILE_TABLE_NAME, null, values);
+                    if (rowId > 0) {
+                        return ContentUris.withAppendedId(ProviderTableMeta.CONTENT_URI_FILE, rowId);
+                    } else {
+                        throw new SQLException(ERROR + uri);
+                    }
+                } else {
                     // file is already inserted; race condition, let's avoid a duplicated entry
                     Uri insertedFileUri = ContentUris.withAppendedId(
                         ProviderTableMeta.CONTENT_URI_FILE,
@@ -289,15 +297,6 @@ public class FileContentProvider extends ContentProvider {
                     doubleCheck.close();
 
                     return insertedFileUri;
-                } else {
-                    doubleCheck.close();
-
-                    long rowId = db.insert(ProviderTableMeta.FILE_TABLE_NAME, null, values);
-                    if (rowId > 0) {
-                        return ContentUris.withAppendedId(ProviderTableMeta.CONTENT_URI_FILE, rowId);
-                    } else {
-                        throw new SQLException(ERROR + uri);
-                    }
                 }
 
             case SHARES:
@@ -656,30 +655,6 @@ public class FileContentProvider extends ContentProvider {
         }
     }
 
-    @Override
-    public int bulkInsert(@NonNull Uri uri, @NonNull ContentValues[] values) {
-        if (isCallerNotAllowed(uri)) {
-            return 0;
-        }
-
-        if (mUriMatcher.match(uri) == VIRTUAL) {
-            SQLiteDatabase database = mDbHelper.getWritableDatabase();
-            database.beginTransaction();
-            int contentInsert;
-            try {
-                for (ContentValues contentValues : values) {
-                    insert(database, uri, contentValues);
-                }
-                database.setTransactionSuccessful();
-                contentInsert = values.length;
-            } finally {
-                database.endTransaction();
-            }
-            return contentInsert;
-        }
-        return super.bulkInsert(uri, values);
-    }
-
     @NonNull
     @Override
     public ContentProviderResult[] applyBatch(@NonNull ArrayList<ContentProviderOperation> operations)
@@ -693,13 +668,7 @@ public class FileContentProvider extends ContentProvider {
         database.beginTransaction();  // it's supposed that transactions can be nested
         try {
             for (ContentProviderOperation operation : operations) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && operation.isInsert()) {
-                    ContentValues contentValues = operation.resolveValueBackReferences(results, i);
-                    Uri newUri = insert(database, operation.getUri(), contentValues);
-                    results[i] = new ContentProviderResult(newUri);
-                } else {
-                    results[i] = operation.apply(this, results, i);
-                }
+                results[i] = operation.apply(this, results, i);
                 i++;
             }
             database.setTransactionSuccessful();
