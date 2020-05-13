@@ -39,6 +39,7 @@ import com.nextcloud.client.core.Clock;
 import com.nextcloud.client.core.ClockImpl;
 import com.nextcloud.client.core.ThreadPoolAsyncRunner;
 import com.nextcloud.client.device.DeviceInfo;
+import com.nextcloud.client.files.downloader.DownloadTask;
 import com.nextcloud.client.logger.FileLogHandler;
 import com.nextcloud.client.logger.Logger;
 import com.nextcloud.client.logger.LoggerImpl;
@@ -48,6 +49,8 @@ import com.nextcloud.client.migrations.MigrationsDb;
 import com.nextcloud.client.migrations.MigrationsManager;
 import com.nextcloud.client.migrations.MigrationsManagerImpl;
 import com.nextcloud.client.network.ClientFactory;
+import com.nextcloud.client.notifications.NotificationsManager;
+import com.nextcloud.client.notifications.NotificationsManagerImpl;
 import com.owncloud.android.datamodel.ArbitraryDataProvider;
 import com.owncloud.android.datamodel.UploadsStorageManager;
 import com.owncloud.android.ui.activities.data.activities.ActivitiesRepository;
@@ -62,6 +65,7 @@ import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import dagger.Module;
@@ -158,9 +162,17 @@ class AppModule {
 
     @Provides
     @Singleton
-    AsyncRunner asyncRunner() {
+    AsyncRunner uiAsyncRunner() {
         Handler uiHandler = new Handler();
-        return new ThreadPoolAsyncRunner(uiHandler, 4);
+        return new ThreadPoolAsyncRunner(uiHandler, 4, "ui");
+    }
+
+    @Provides
+    @Singleton
+    @Named("io")
+    AsyncRunner ioAsyncRunner() {
+        Handler uiHandler = new Handler();
+        return new ThreadPoolAsyncRunner(uiHandler, 8, "io");
     }
 
     @Provides
@@ -193,5 +205,12 @@ class AppModule {
                                         AsyncRunner asyncRunner,
                                         Migrations migrations) {
         return new MigrationsManagerImpl(appInfo, migrationsDb, asyncRunner, migrations.getSteps());
+    }
+
+    @Provides
+    @Singleton
+    NotificationsManager notificationsManager(Context context,
+                                              android.app.NotificationManager platformNotificationsManager) {
+        return new NotificationsManagerImpl(context, context.getResources(), platformNotificationsManager);
     }
 }

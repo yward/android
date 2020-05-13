@@ -193,8 +193,5 @@
         </rules>
       </arrangement>
     </codeStyleSettings>
-    <codeStyleSettings language="kotlin">
-      <option name="ALIGN_MULTILINE_METHOD_BRACKETS" value="true" />
-    </codeStyleSettings>
   </code_scheme>
 </component>

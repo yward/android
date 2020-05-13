@@ -1,8 +1,8 @@
-/*
+/**
  * Nextcloud Android client application
  *
  * @author Chris Narkiewicz
- * Copyright (C) 2019 Chris Narkiewicz <hello@ezaquarii.com>
+ * Copyright (C) 2020 Chris Narkiewicz <hello@ezaquarii.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -17,22 +17,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package com.nextcloud.client.core
+package com.nextcloud.client.files.downloader
+
+import java.util.UUID
 
 /**
- * Interface allowing cancellation of a running task.
- * Once must be careful when cancelling a non-idempotent task,
- * as cancellation does not guarantee a task termination.
- * One trivial case would be a task finished and cancelled
- * before result delivery.
+ * This class represents current download process state.
+ * This object is immutable.
  *
- * @see [com.nextcloud.client.core.AsyncRunner]
+ * @property uuid Unique download process id
+ * @property state current download state
+ * @property progress download progress, 0-100 percent
+ * @property request initial download request
  */
-interface Cancellable {
-
+data class Download(
+    val uuid: UUID,
+    val state: DownloadState,
+    val progress: Int,
+    val request: Request
+) {
     /**
-     * Cancel running task. Task termination is not guaranteed, as some
-     * tasks cannot be interrupted, but the result will not be delivered.
+     * True if download is no longer running, false if it is still being processed.
      */
-    fun cancel()
+    val isFinished: Boolean get() = state == DownloadState.COMPLETED || state == DownloadState.FAILED
 }
