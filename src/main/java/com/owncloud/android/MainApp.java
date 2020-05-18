@@ -251,6 +251,7 @@ public class MainApp extends MultiDexApplication implements HasAndroidInjector {
         setAppTheme(preferences.getDarkThemeMode());
         super.onCreate();
 
+
         insertConscrypt();
 
         initSecurityKeyManager();
